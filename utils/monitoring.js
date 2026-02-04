@@ -1,5 +1,5 @@
-import fs from 'fs';
-import path from 'path';
+import fs from "fs";
+import path from "path";
 
 class MonitoringService {
   constructor() {
@@ -9,20 +9,13 @@ class MonitoringService {
       responseTime: [],
       uptime: Date.now(),
       memoryUsage: process.memoryUsage(),
-      cpuUsage: process.cpuUsage()
+      cpuUsage: process.cpuUsage(),
     };
-    
-    this.logDir = './logs';
-    this.ensureLogDir();
-    
+
+    this.logDir = "./logs";
+
     // Start monitoring interval
     this.startMonitoring();
-  }
-
-  ensureLogDir() {
-    if (!fs.existsSync(this.logDir)) {
-      fs.mkdirSync(this.logDir, { recursive: true });
-    }
   }
 
   startMonitoring() {
@@ -47,24 +40,31 @@ class MonitoringService {
         rss: Math.round(this.metrics.memoryUsage.rss / 1024 / 1024),
         heapTotal: Math.round(this.metrics.memoryUsage.heapTotal / 1024 / 1024),
         heapUsed: Math.round(this.metrics.memoryUsage.heapUsed / 1024 / 1024),
-        external: Math.round(this.metrics.memoryUsage.external / 1024 / 1024)
+        external: Math.round(this.metrics.memoryUsage.external / 1024 / 1024),
       },
       requests: this.metrics.requests,
       errors: this.metrics.errors,
-      errorRate: this.metrics.requests > 0 ? (this.metrics.errors / this.metrics.requests * 100).toFixed(2) : 0,
-      avgResponseTime: this.metrics.responseTime.length > 0 
-        ? Math.round(this.metrics.responseTime.reduce((a, b) => a + b, 0) / this.metrics.responseTime.length)
-        : 0
+      errorRate:
+        this.metrics.requests > 0
+          ? ((this.metrics.errors / this.metrics.requests) * 100).toFixed(2)
+          : 0,
+      avgResponseTime:
+        this.metrics.responseTime.length > 0
+          ? Math.round(
+              this.metrics.responseTime.reduce((a, b) => a + b, 0) /
+                this.metrics.responseTime.length,
+            )
+          : 0,
     };
 
     const logMessage = `[METRICS] ${JSON.stringify(metricsData)}\n`;
-    fs.appendFileSync(path.join(this.logDir, 'metrics.log'), logMessage);
+    fs.appendFileSync(path.join(this.logDir, "metrics.log"), logMessage);
   }
 
   recordRequest(responseTime) {
     this.metrics.requests++;
     this.metrics.responseTime.push(responseTime);
-    
+
     // Keep only last 1000 response times
     if (this.metrics.responseTime.length > 1000) {
       this.metrics.responseTime = this.metrics.responseTime.slice(-1000);
@@ -77,19 +77,23 @@ class MonitoringService {
 
   getHealthStatus() {
     const memoryUsage = this.metrics.memoryUsage;
-    const memoryUsagePercent = (memoryUsage.heapUsed / memoryUsage.heapTotal) * 100;
-    
+    const memoryUsagePercent =
+      (memoryUsage.heapUsed / memoryUsage.heapTotal) * 100;
+
     return {
-      status: memoryUsagePercent > 90 ? 'unhealthy' : 'healthy',
+      status: memoryUsagePercent > 90 ? "unhealthy" : "healthy",
       uptime: this.metrics.uptime,
       memory: {
         used: Math.round(memoryUsage.heapUsed / 1024 / 1024),
         total: Math.round(memoryUsage.heapTotal / 1024 / 1024),
-        percentage: Math.round(memoryUsagePercent)
+        percentage: Math.round(memoryUsagePercent),
       },
       requests: this.metrics.requests,
       errors: this.metrics.errors,
-      errorRate: this.metrics.requests > 0 ? (this.metrics.errors / this.metrics.requests * 100).toFixed(2) : 0
+      errorRate:
+        this.metrics.requests > 0
+          ? ((this.metrics.errors / this.metrics.requests) * 100).toFixed(2)
+          : 0,
     };
   }
 
@@ -106,28 +110,29 @@ class MonitoringService {
   // Memory monitoring
   checkMemoryUsage() {
     const memoryUsage = process.memoryUsage();
-    const memoryUsagePercent = (memoryUsage.heapUsed / memoryUsage.heapTotal) * 100;
-    
+    const memoryUsagePercent =
+      (memoryUsage.heapUsed / memoryUsage.heapTotal) * 100;
+
     if (memoryUsagePercent > 90) {
       console.warn(`High memory usage: ${memoryUsagePercent.toFixed(2)}%`);
       return false;
     }
-    
+
     return true;
   }
 
   // Cleanup old logs
   cleanupLogs() {
-    const logFiles = ['combined.log', 'err.log', 'metrics.log'];
+    const logFiles = ["combined.log", "err.log", "metrics.log"];
     const maxSize = 10 * 1024 * 1024; // 10MB
-    
-    logFiles.forEach(file => {
+
+    logFiles.forEach((file) => {
       const filePath = path.join(this.logDir, file);
       if (fs.existsSync(filePath)) {
         const stats = fs.statSync(filePath);
         if (stats.size > maxSize) {
           // Rotate log file
-          const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+          const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
           const rotatedFile = `${file}.${timestamp}`;
           fs.renameSync(filePath, path.join(this.logDir, rotatedFile));
           // Rotated log file
